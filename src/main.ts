@@ -23,7 +23,9 @@ import {
   Sale,
   Trait,
   Transfer,
+  Unwrap,
   UserProxy,
+  Wrap,
 } from "./model";
 import { BlockHeader, Log } from "@subsquid/evm-processor";
 import { MappingHandler } from "./handlers";
@@ -40,15 +42,14 @@ export const sales = new Map<string, Sale>();
 export const asks = new Map<string, Ask>();
 export const askRemovedEvents = new Map<string, AskRemoved>();
 export const askCreatedEvents = new Map<string, AskCreated>();
-
 export const userProxies = new Map<string, UserProxy>();
 export const punkTransfers = new Map<string, Transfer>();
-
-export const ERC721BuyEvents = new Map<string, Assign>();
-export const raribleExchangeBuyEvents = new Map<string, Assign>();
-export const openseaBuyEvents = new Map<string, Assign>();
 export const contracts = new Map<string, Contract>();
 export const cTokens = new Map<string, CToken>();
+
+export const wraps = new Map<string, Wrap>();
+export const unWraps = new Map<string, Unwrap>();
+export const openseaBuyEvents = new Map<string, Assign>();
 
 export const epnsNotificationCounters = new Map<
   string,
@@ -56,7 +57,7 @@ export const epnsNotificationCounters = new Map<
 >();
 export const epnsPushNotifications = new Map<string, EpnsPushNotification>();
 
-async function handleMapping(log: Log, header: BlockHeader, ctx: any) {
+async function handleCryptoPunk(log: Log, header: BlockHeader, ctx: any) {
   const { timestamp, height, hash: blockHash } = header;
   const txHash = log.transaction?.hash || "";
 
@@ -197,11 +198,46 @@ async function handleMapping(log: Log, header: BlockHeader, ctx: any) {
   }
 }
 
+async function handleWrappedPunk(log: Log, header: BlockHeader, ctx: any) {
+  const { timestamp, height, hash: blockHash } = header;
+  const txHash = log.transaction?.hash || "";
+
+  if (log.topics[0] === WrappedPunkEvent.Transfer.topic) {
+    const { from, to, tokenId } = WrappedPunkEvent.Transfer.decode(log);
+    await MappingHandler.handleWrappedPunkTransfer({
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(height),
+      txHash,
+      blockHash,
+      tokenId,
+      from,
+      to,
+      address: log.address,
+      ctx,
+      header,
+      logIndex: log.logIndex,
+    });
+  }
+
+  if (log.topics[0] === WrappedPunkEvent.ProxyRegistered.topic) {
+    const { user, proxy } = WrappedPunkEvent.ProxyRegistered.decode(log);
+    MappingHandler.handleProxyRegistered({
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(height),
+      txHash,
+      blockHash,
+      address: log.address,
+      logIndex: log.logIndex,
+      user,
+      proxy,
+    });
+  }
+}
 processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   for (let c of ctx.blocks) {
     for (let log of c.logs) {
       // decode and normalize the tx data
-      await handleMapping(log, c.header, ctx);
+      await handleCryptoPunk(log, c.header, ctx);
     }
   }
   console.log("number of accounts", accounts.size);

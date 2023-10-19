@@ -103,3 +103,25 @@ export interface ITransfer extends IBase {
   to: string;
   value: bigint;
 }
+
+export interface IWrappedPunkTransfer extends IBase {
+  from: string;
+  to: string;
+  tokenId: bigint;
+  header: BlockHeader;
+  ctx: DataHandlerContext<
+    Store,
+    {
+      transaction: {
+        from: true;
+        value: true;
+        hash: true;
+      };
+    }
+  >;
+}
+
+export interface IProxyRegistered extends IBase {
+  user: string;
+  proxy: string;
+}

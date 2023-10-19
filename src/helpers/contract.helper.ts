@@ -1,6 +1,7 @@
 import { BIGINT_ONE, BIGINT_ZERO } from "../constant";
 import { Contract } from "../model";
 import { Contract as CryptoPunkContract } from "../abi/cryptopunks";
+import { Contract as WrappedPunksContract } from "../abi/wrappedpunks";
 import { BlockHeader, DataHandlerContext } from "@subsquid/evm-processor";
 import { Store } from "@subsquid/typeorm-store";
 import { contracts } from "../main";
@@ -47,42 +48,29 @@ export async function getOrCreateCryptoPunkContract(
   return contract;
 }
 
-// export function getOrCreateWrappedPunkContract(address: Address): Contract {
-//   let id = address.toHexString();
-//   let contract = Contract.load(id);
-//   let wrappedPunks = WrappedPunks.bind(address);
+export async function getOrCreateWrappedPunkContract(
+  ctx: any,
+  header: BlockHeader,
+  address: string
+): Promise<Contract> {
+  const id = address;
+  let contract = contracts.get(id);
+  const wrappedPunk = new WrappedPunksContract(ctx, header, address);
+  if (!contract) {
+    contract = new Contract({
+      id,
+      totalAmountTraded: BIGINT_ZERO,
+      totalSales: BIGINT_ZERO,
+      symbol: await wrappedPunk.symbol(),
+      name: await wrappedPunk.name(),
+      totalSupply: await wrappedPunk.totalSupply(),
+    });
 
-//   if (!contract) {
-//     contract = new Contract(id);
-//     contract.totalAmountTraded = BigInt.fromI32(0);
-//     contract.totalSales = BigInt.fromI32(0);
+    contracts.set(contract.id, contract);
+  }
 
-//     let symbolCall = wrappedPunks.try_symbol();
-//     if (!symbolCall.reverted) {
-//       contract.symbol = symbolCall.value;
-//     } else {
-//       log.warning("symbolCall Reverted", []);
-//     }
-
-//     let nameCall = wrappedPunks.try_name();
-//     if (!nameCall.reverted) {
-//       contract.name = nameCall.value;
-//     } else {
-//       log.warning("nameCall Reverted", []);
-//     }
-
-//     let totalSupplyCall = wrappedPunks.try_totalSupply();
-//     if (!totalSupplyCall.reverted) {
-//       contract.totalSupply = totalSupplyCall.value;
-//     } else {
-//       log.warning("totalSupplyCall Reverted", []);
-//     }
-
-//     contract.save();
-//   }
-
-//   return contract as Contract;
-// }
+  return contract as Contract;
+}
 
 export function updateContractAggregates(
   contract: Contract,

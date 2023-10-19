@@ -4,7 +4,7 @@ import {
   updateAccountHoldings,
 } from "../helpers/account.helper";
 import { MappingInterface } from "../interfaces";
-import { Punk, Trait, TraitMetaData, TraitType } from "../model";
+import { Punk, Trait, TraitMetaData, TraitType, UserProxy } from "../model";
 import { createMetadata } from "../helpers/metadata.helper";
 import {
   createPunk,
@@ -13,6 +13,7 @@ import {
 } from "../helpers/punk.helper";
 import {
   getOrCreateCryptoPunkContract,
+  getOrCreateWrappedPunkContract,
   updateContractAggregates,
 } from "../helpers/contract.helper";
 import { getOrCreateAssign } from "../helpers/assign.helper";
@@ -33,6 +34,8 @@ import {
   userProxies,
   punkTransfers,
   cTokens,
+  wraps,
+  unWraps,
 } from "../main";
 import { getTrait } from "../traits";
 import {
@@ -48,7 +51,11 @@ import {
   getOrCreateBid,
   handleBidNotification,
 } from "../helpers/bid.helper";
-import { getOrCreateCToken, getOwnerFromCToken } from "../utils";
+import {
+  getOrCreateCToken,
+  getOwnerFromCToken,
+  hexStringToUint8Array,
+} from "../utils";
 import {
   getOrCreateSale,
   handleSaleNotification,
@@ -61,6 +68,7 @@ import {
   handleAskNotification,
 } from "../helpers/ask.helper";
 import { getOrCreateTransfer } from "../helpers/transfer.helper";
+import { createUnwrap, createWrap } from "../helpers/wrapAndUnwrap.helper";
 
 // import { handleBidNotification } from '../src/helpers/bidHelpers'
 // import { handleAskNotification } from './helpers/askHelpers'
@@ -656,86 +664,126 @@ export async function handlePunkBought(
 }
 
 // //This function is called for three events: Mint (Wrap), Burn (Unwrap) and Transfer
-// export function handleWrappedPunkTransfer(event: WrappedPunkTransfer): void {
-// 	log.info('handleWrappedPunksTransfer tokenId: {} from: {} to: {}', [
-// 		event.params.tokenId.toString(),
-// 		event.params.from.toHexString(),
-// 		event.params.to.toHexString(),
-// 	])
+export async function handleWrappedPunkTransfer(
+  data: MappingInterface.IWrappedPunkTransfer
+): Promise<void> {
+  const {
+    ctx,
+    header,
+    address,
+    from,
+    to,
+    tokenId,
+    txHash,
+    blockHash,
+    blockNumber,
+    timestamp,
+    logIndex,
+  } = data;
+  const contract = await getOrCreateWrappedPunkContract(ctx, header, address);
 
-// 	let contract = getOrCreateWrappedPunkContract(event.address)
+  const fromAccount = getOrCreateAccount(from)!;
+  const toAccount = getOrCreateAccount(to)!;
+  const punk = punks.get(tokenId.toString())!;
+  if (from == ZERO_ADDRESS) {
+    // A wrapped punk is minted (wrapped)
+    const wrap = createWrap(
+      WRAPPED_PUNK_ADDRESS,
+      fromAccount,
+      punk,
+      txHash,
+      logIndex,
+      blockNumber,
+      blockHash,
+      timestamp
+    );
 
-// 	if (event.params.from.toHexString() == ZERO_ADDRESS) {
-// 		// A wrapped punk is minted (wrapped)
-// 		let wrap = createWrap(
-// 			Address.fromString(WRAPPED_PUNK_ADDRESS),
-// 			event.params.from,
-// 			event.params.tokenId,
-// 			event
-// 		)
+    contract.totalSupply = contract.totalSupply + BIGINT_ONE;
 
-// 		contract.totalSupply = contract.totalSupply.plus(BIGINT_ONE)
+    wrap.to = toAccount;
 
-// 		wrap.to = event.params.to
+    //Write
+    wraps.set(wrap.id, wrap);
+  } else if (to == ZERO_ADDRESS) {
+    // A wrapped punk is burned (unwrapped)
+    const unWrap = createUnwrap(
+      fromAccount,
+      toAccount,
+      punk,
+      txHash,
+      logIndex,
+      blockNumber,
+      blockHash,
+      timestamp
+    );
 
-// 		//Write
-// 		wrap.save()
-// 	} else if (event.params.to.toHexString() == ZERO_ADDRESS) {
-// 		// A wrapped punk is burned (unwrapped)
-// 		let unWrap = createUnwrap(
-// 			event.params.from,
-// 			event.params.to,
-// 			event.params.tokenId,
-// 			event
-// 		)
+    contract.totalSupply = contract.totalSupply - BIGINT_ONE;
 
-// 		contract.totalSupply = contract.totalSupply.minus(BIGINT_ONE)
+    //Write
+    unWraps.set(unWrap.id, unWrap);
+  } else {
+    //Wrapped Punk Transfer
+    //We do not want to save a transfer for wrapped punk mints/burns
 
-// 		//Write
-// 		unWrap.save()
-// 	} else {
-// 		//Wrapped Punk Transfer
-// 		//We do not want to save a transfer for wrapped punk mints/burns
-// 		let transfer = getOrCreateTransfer(event.params.tokenId, event)
-// 		let toAccount = getOrCreateAccount(event.params.to)
-// 		let fromAccount = getOrCreateAccount(event.params.from)
-// 		let punk = Punk.load(event.params.tokenId.toString())!
+    let transfer = getOrCreateTransfer(
+      punk,
+      contract,
+      txHash,
+      logIndex,
+      timestamp,
+      blockHash,
+      blockNumber
+    );
 
-// 		//We create a cToken Entity here to store IDs for future comparison
-// 		let cToken = getOrCreateCToken(event)
-// 		cToken.from = event.params.from
-// 		cToken.to = event.params.to
-// 		cToken.owner = event.params.to.toHexString()
-// 		cToken.punkId = event.params.tokenId.toString()
+    //We create a cToken Entity here to store IDs for future comparison
+    const cToken = getOrCreateCToken(
+      txHash,
+      logIndex,
+      blockNumber,
+      blockHash,
+      timestamp
+    );
+    cToken.from = fromAccount;
+    cToken.to = toAccount;
+    cToken.owner = to;
+    cToken.punkId = tokenId.toString();
 
-// 		//We need the contract address to filter our transactions from other marketplace(OpenSea,RaribleExchangeV1, ERC721Sale) sales
-// 		cToken.referenceId = event.address.toHexString()
+    //We need the contract address to filter our transactions from other marketplace(OpenSea,RaribleExchangeV1, ERC721Sale) sales
+    cToken.referenceId = address;
 
-// 		transfer.from = fromAccount.id
-// 		transfer.to = toAccount.id
-// 		transfer.nft = punk.id
+    transfer.from = fromAccount;
+    transfer.to = toAccount;
+    transfer.nft = punk;
 
-// 		updateAccountHoldings(toAccount, fromAccount)
-// 		punk.owner = toAccount.id
-// 		punk.numberOfTransfers = punk.numberOfTransfers.plus(BIGINT_ONE)
+    updateAccountHoldings(toAccount, fromAccount);
+    punk.owner = toAccount;
+    punk.numberOfTransfers = punk.numberOfTransfers + BIGINT_ONE;
 
-// 		//Write
-// 		fromAccount.save()
-// 		toAccount.save()
-// 		transfer.save()
-// 		cToken.save()
-// 		punk.save()
-// 	}
+    //Write
+    accounts.set(fromAccount.id, fromAccount);
+    accounts.set(toAccount.id, toAccount);
+    punkTransfers.set(transfer.id, transfer);
+    cTokens.set(cToken.id, cToken);
+    punks.set(punk.id, punk);
+  }
 
-// 	contract.save()
-// }
+  contracts.set(contract.id, contract);
+}
 
-// export function handleProxyRegistered(event: ProxyRegistered): void {
-// 	let userProxy = new UserProxy(event.params.proxy.toHexString())
-// 	userProxy.user = event.params.user
-// 	userProxy.timestamp = event.block.timestamp
-// 	userProxy.txHash = event.transaction.hash
-// 	userProxy.blockNumber = event.block.number
-// 	userProxy.blockHash = event.block.hash
-// 	userProxy.save()
-// }
+export function handleProxyRegistered(
+  data: MappingInterface.IProxyRegistered
+): void {
+  const { user, proxy, timestamp, txHash, blockHash, blockNumber } = data;
+
+  const account = accounts.get(user)!;
+  const userProxy = new UserProxy({
+    id: proxy,
+    user: account,
+    timestamp,
+    txHash: hexStringToUint8Array(txHash),
+    blockHash: hexStringToUint8Array(blockHash),
+    blockNumber,
+  });
+
+  userProxies.set(userProxy.id, userProxy);
+}
