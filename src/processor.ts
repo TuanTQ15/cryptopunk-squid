@@ -9,7 +9,7 @@ import {
 } from "@subsquid/evm-processor";
 import { events as CryptoPunkEvent } from "./abi/cryptopunks";
 import { events as WrappedPunkEvent } from "./abi/wrappedpunks";
-import { events as ERC72Event } from "./abi/ERC721Sale";
+import { events as ERC721Event } from "./abi/ERC721Sale";
 import { events as RaribleEvent } from "./abi/RaribleExchangeV1";
 import { events as OpenseaEvent } from "./abi/Opensea";
 
@@ -71,7 +71,7 @@ export const processor = new EvmBatchProcessor()
   })
   .addLog({
     address: [ERC721_SALE_CONTRACT],
-    topic0: [ERC72Event.Buy.topic],
+    topic0: [ERC721Event.Buy.topic],
   })
   .addLog({
     address: [RARIBLE_EXCHANGEV1_CONTRACT],

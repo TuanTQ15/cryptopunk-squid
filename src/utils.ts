@@ -84,3 +84,80 @@ export function getOrCreateCToken(
   }
   return cToken as CToken;
 }
+
+export function getContractAddress(
+  logIndex: number,
+  txHash: string
+): string | null {
+  //The transfer always come first, so we need to provide the correct logIndex for cToken
+  let cTokenLogIndex = BigInt(logIndex) - BIGINT_ONE;
+
+  let id = txHash.concat("-").concat(cTokenLogIndex.toString());
+
+  /**
+   * We only care about transactions concerning WrappedPunk contract
+   * cToken should exist with the given ID.
+   */
+  let cToken = cTokens.get(id);
+
+  // if it doesn't then it's not a WrappedPunk transaction
+  if (!cToken) {
+    return null;
+  }
+
+  // if it does, then return the contract Address to enable us validate the transaction in handleBuy()
+  let contractAddress = cToken.referenceId;
+  return contractAddress as string;
+}
+
+export function getMakerAddress(logIndex: number, txHash: string) {
+  /**
+   @description
+   	- We only care about transactions concerning WrappedPunk contract saved from the WrappedPunk Transfer event.
+    - We need the maker address to validate a bid accepted sale in the OrderMatched() event
+    - The transfer always come first, so we need to provide the correct logIndex for cToken
+	  - cToken should exist with the given ID in the same transaction at the time it's being called in the OrderMatched() event.
+   	- if it doesn't then it's not a WrappedPunk transaction (null)
+*/
+  const cTokenLogIndex = BigInt(logIndex) + BIGINT_ONE;
+  const id = txHash.concat("-").concat(cTokenLogIndex.toString());
+
+  let cToken = cTokens.get(id);
+  if (!cToken) {
+    return null;
+  }
+
+  let makerAddress = cToken.to.id;
+  return makerAddress;
+}
+
+export function getPriceAfterRaribleCut(price: bigint): bigint {
+  const cutPercentage = 2.5; // 2.5%
+  const cutAmount = (price * BigInt(cutPercentage)) / BigInt(100);
+
+  const priceAfterCut = price - cutAmount;
+  return priceAfterCut;
+}
+
+export function getPunkId(logIndex: number, txHash: string): string | null {
+  /**
+   @description
+   	- We only care about transactions concerning WrappedPunk contract saved from the WrappedPunk Transfer event.
+    - We need the punk ID to validate our sale in OrderMatched() event
+    - The transfer always come first, so we need to provide the correct logIndex for cToken
+	  - cToken should exist with the given ID in the same transaction at the time it's being called in OrderMatched() event.
+   	- if it doesn't then it's not a WrappedPunk transaction (null)
+*/
+  const cTokenLogIndex = BigInt(logIndex) - BIGINT_ONE;
+
+  const id = txHash.concat("-").concat(cTokenLogIndex.toString());
+
+  const cToken = cTokens.get(id);
+
+  if (!cToken) {
+    return null;
+  }
+
+  const punk = cToken.punkId;
+  return punk as string;
+}

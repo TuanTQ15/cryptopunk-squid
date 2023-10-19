@@ -2,7 +2,7 @@ import { TypeormDatabase } from "@subsquid/typeorm-store";
 import { processor } from "./processor";
 import { events as CryptoPunkEvent } from "./abi/cryptopunks";
 import { events as WrappedPunkEvent } from "./abi/wrappedpunks";
-import { events as ERC72Event } from "./abi/ERC721Sale";
+import { events as ERC721Event } from "./abi/ERC721Sale";
 import { events as RaribleEvent } from "./abi/RaribleExchangeV1";
 import { events as OpenseaEvent } from "./abi/Opensea";
 import {
@@ -28,7 +28,7 @@ import {
   Wrap,
 } from "./model";
 import { BlockHeader, Log } from "@subsquid/evm-processor";
-import { MappingHandler } from "./handlers";
+import { MappingHandler, MarketplaceHandler } from "./handlers";
 
 export const traits = new Map<string, Trait>();
 export const punks = new Map<string, Punk>();
@@ -46,16 +46,13 @@ export const userProxies = new Map<string, UserProxy>();
 export const punkTransfers = new Map<string, Transfer>();
 export const contracts = new Map<string, Contract>();
 export const cTokens = new Map<string, CToken>();
-
 export const wraps = new Map<string, Wrap>();
 export const unWraps = new Map<string, Unwrap>();
-export const openseaBuyEvents = new Map<string, Assign>();
-
+export const epnsPushNotifications = new Map<string, EpnsPushNotification>();
 export const epnsNotificationCounters = new Map<
   string,
   EpnsNotificationCounter
 >();
-export const epnsPushNotifications = new Map<string, EpnsPushNotification>();
 
 async function handleCryptoPunk(log: Log, header: BlockHeader, ctx: any) {
   const { timestamp, height, hash: blockHash } = header;
@@ -233,12 +230,76 @@ async function handleWrappedPunk(log: Log, header: BlockHeader, ctx: any) {
     });
   }
 }
+
+async function handleMarketplace(log: Log, header: BlockHeader, ctx: any) {
+  const { timestamp, height, hash: blockHash } = header;
+  const txHash = log.transaction?.hash || "";
+
+  if (log.topics[0] === ERC721Event.Buy.topic) {
+    const { tokenId, seller, buyer, price } = ERC721Event.Buy.decode(log);
+
+    await MarketplaceHandler.handleERC721Buy({
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(height),
+      txHash,
+      blockHash,
+      tokenId,
+      address: log.address,
+      ctx,
+      header,
+      logIndex: log.logIndex,
+      seller,
+      buyer,
+      price,
+    });
+  }
+
+  if (log.topics[0] === RaribleEvent.Buy.topic) {
+    const { owner, buyer, buyTokenId, sellTokenId, buyValue } =
+      RaribleEvent.Buy.decode(log);
+
+    await MarketplaceHandler.handleExchangeV1Buy({
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(height),
+      txHash,
+      blockHash,
+      owner,
+      address: log.address,
+      ctx,
+      header,
+      logIndex: log.logIndex,
+      buyTokenId,
+      buyer,
+      sellTokenId,
+      buyValue,
+    });
+  }
+
+  if (log.topics[0] === OpenseaEvent.OrdersMatched.topic) {
+    const { maker, taker, price } = OpenseaEvent.OrdersMatched.decode(log);
+
+    await MarketplaceHandler.handleOpenSeaSale({
+      timestamp: BigInt(timestamp),
+      blockNumber: BigInt(height),
+      txHash,
+      blockHash,
+      maker,
+      address: log.address,
+      ctx,
+      header,
+      logIndex: log.logIndex,
+      taker,
+      price,
+    });
+  }
+}
 processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   for (let c of ctx.blocks) {
     for (let log of c.logs) {
       // decode and normalize the tx data
+
+      await handleWrappedPunk(log, c.header, ctx);
       await handleCryptoPunk(log, c.header, ctx);
     }
   }
-  console.log("number of accounts", accounts.size);
 });
