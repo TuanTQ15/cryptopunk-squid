@@ -4,7 +4,7 @@ import {
   updateAccountHoldings,
 } from "../helpers/account.helper";
 import { MappingInterface } from "../interfaces";
-import { Punk, Trait, TraitMetaData, TraitType, UserProxy } from "../model";
+import { Trait, TraitMetaData, TraitType, UserProxy } from "../model";
 import { createMetadata } from "../helpers/metadata.helper";
 import {
   createPunk,

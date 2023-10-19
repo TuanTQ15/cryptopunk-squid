@@ -28,7 +28,7 @@ import {
   Wrap,
 } from "./model";
 import { BlockHeader, Log } from "@subsquid/evm-processor";
-import { MappingHandler, MarketplaceHandler } from "./handlers";
+import { BlockHandler, MappingHandler, MarketplaceHandler } from "./handlers";
 
 export const traits = new Map<string, Trait>();
 export const punks = new Map<string, Punk>();
@@ -293,6 +293,7 @@ async function handleMarketplace(log: Log, header: BlockHeader, ctx: any) {
     });
   }
 }
+
 processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   for (let c of ctx.blocks) {
     for (let log of c.logs) {
@@ -300,6 +301,8 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
 
       await handleWrappedPunk(log, c.header, ctx);
       await handleCryptoPunk(log, c.header, ctx);
+      await handleMarketplace(log, c.header, ctx);
+      await BlockHandler.handleBlock(c.header, ctx);
     }
   }
 });
