@@ -237,7 +237,7 @@ export async function handlePunkTransfer(
   const fromProxy = userProxies.get(sender)!;
   const toProxy = userProxies.get(receiver)!;
 
-  if (toProxy !== null) {
+  if (toProxy) {
     console.debug("PunkTransfer to proxy detected toProxy: {} ", [toProxy.id]);
     return;
   } else if (
@@ -266,9 +266,8 @@ export async function handlePunkTransfer(
     transfer.to = toAccount;
 
     //We close the oldBid if the bidder was transfered the punk
-    let toBid = punk.currentBid;
-    if (toBid) {
-      let oldBid = punkBidEnteredEvents.get(toBid.toString())!;
+    const oldBid = punk.currentBid;
+    if (oldBid) {
       if (oldBid.from.id == toAccount.id) {
         oldBid.created = punk.currentBidCreated;
         oldBid.open = false;
@@ -289,7 +288,7 @@ export async function handlePunkTransfer(
     accounts.set(fromAccount.id, fromAccount);
     punks.set(punk.id, punk);
   } else if (
-    fromProxy !== null &&
+    fromProxy &&
     sender == fromProxy.id &&
     receiver == WRAPPED_PUNK_ADDRESS
   ) {
@@ -379,12 +378,12 @@ export function handlePunkBidEntered(
 ): void {
   const { punkIndex, value, fromAddress, address, blockNumber } = data;
 
-  let punk = punks.get(punkIndex.toString())!;
-  let contract = contracts.get(address)!;
+  const punk = punks.get(punkIndex.toString())!;
+  const contract = contracts.get(address)!;
 
-  let account = getOrCreateAccount(fromAddress);
-  let bid = getOrCreateBid(data, account);
-  let bidCreated = createBidCreated(data, punk, account, contract);
+  const account = getOrCreateAccount(fromAddress);
+  const bid = getOrCreateBid(data, account);
+  const bidCreated = createBidCreated(data, punk, account, contract);
   bid.amount = value;
   bid.nft = punk;
   bid.created = bidCreated;
@@ -422,17 +421,16 @@ export function handlePunkBidWithdrawn(
 
   const { punkIndex, value, fromAddress, address } = data;
 
-  let punk = punks.get(punkIndex.toString())!;
-  let contract = contracts.get(address)!;
+  const punk = punks.get(punkIndex.toString())!;
+  const contract = contracts.get(address)!;
 
-  let account = getOrCreateAccount(fromAddress);
-  let bidRemoved = createBidRemoved(data, punk, account, contract);
+  const account = getOrCreateAccount(fromAddress);
+  const bidRemoved = createBidRemoved(data, punk, account, contract);
   bidRemoved.amount = value;
   bidRemoved.nft = punk;
 
-  let oldBidId = punk.currentBid;
-  if (oldBidId) {
-    let oldBid = punkBidEnteredEvents.get(oldBidId.id)!;
+  const oldBid = punk.currentBid;
+  if (oldBid) {
     oldBid.created = punk.currentBidCreated;
     oldBid.from = account;
     oldBid.open = false;
@@ -467,7 +465,7 @@ export async function handlePunkNoLongerForSale(
     timestamp,
     blockNumber,
   } = data;
-  let punk = punks.get(punkIndex.toString())!;
+  const punk = punks.get(punkIndex.toString())!;
   const contract = await getOrCreateCryptoPunkContract(ctx, header, address);
   const askRemoved = createAskRemoved(
     punk,
@@ -480,9 +478,8 @@ export async function handlePunkNoLongerForSale(
   );
 
   //Close Old Ask
-  let oldAskId = punk.currentAsk;
-  if (oldAskId) {
-    let oldAsk = asks.get(oldAskId.id)!;
+  const oldAsk = punk.currentAsk;
+  if (oldAsk) {
     //Create relationship with AskRemoved
     oldAsk.removed = askRemoved;
     oldAsk.created = punk.currentAskCreated;
@@ -549,8 +546,8 @@ export async function handlePunkBought(
       timestamp
     );
     const toAccount = getOrCreateAccount(addressOwner);
-    let bidRemoved = createBidRemoved(data, punk, fromAccount, contract);
-    let sale = getOrCreateSale(
+    const bidRemoved = createBidRemoved(data, punk, fromAccount, contract);
+    const sale = getOrCreateSale(
       fromAccount,
       punk,
       logIndex,
@@ -564,9 +561,8 @@ export async function handlePunkBought(
     closeOldAsk(punk, fromAccount);
 
     //Close old bid if the bidder is the buyer & use the bid amount to update sale
-    let oldPunkBid = punk.currentBid;
-    if (oldPunkBid) {
-      let oldBid = punkBidEnteredEvents.get(oldPunkBid.id)!;
+    const oldBid = punk.currentBid;
+    if (oldBid) {
       if (oldBid.from.id == toAccount.id) {
         oldBid.created = punk.currentBidCreated;
         oldBid.removed = bidRemoved;
@@ -620,9 +616,9 @@ export async function handlePunkBought(
 
     const punk = punks.get(tokenId)!;
     const contract = await getOrCreateCryptoPunkContract(ctx, header, address);
-    let toAccount = getOrCreateAccount(buyer);
-    let fromAccount = getOrCreateAccount(seller);
-    let sale = getOrCreateSale(
+    const toAccount = getOrCreateAccount(buyer);
+    const fromAccount = getOrCreateAccount(seller);
+    const sale = getOrCreateSale(
       fromAccount,
       punk,
       logIndex,

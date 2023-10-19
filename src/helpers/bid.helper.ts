@@ -19,7 +19,7 @@ export function getOrCreateBid(
   data: MappingInterface.IPunkBidEntered,
   from: Account
 ): Bid {
-  const { blockNumber, fromAddress, logIndex, txHash } = data;
+  const { logIndex, txHash } = data;
 
   let bidId = getGlobalId(txHash, logIndex).concat("-BID"); // -BID, To prevent conflict with interfaces with same ID
   let bid = punkBidEnteredEvents.get(bidId); //Should not be null
@@ -86,9 +86,8 @@ export function createBidRemoved(
 }
 
 export function closeOldBid(punk: Punk, toAccount: Account): void {
-  let oldBidId = punk.currentBid;
-  if (oldBidId) {
-    let oldBid = punkBidEnteredEvents.get(oldBidId.id)!;
+  let oldBid = punk.currentBid;
+  if (oldBid) {
     if (oldBid.from.id == toAccount.id) {
       oldBid.created = punk.currentBidCreated;
       oldBid.open = false;
