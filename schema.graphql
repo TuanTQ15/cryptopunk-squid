@@ -1,0 +1,321 @@
+enum TraitType {
+  TYPE
+  ACCESSORY
+}
+
+enum EventType {
+  ASSIGN
+  TRANSFER
+  ASK_CREATED
+  ASK_REMOVED
+  BID_CREATED
+  BID_REMOVED
+  SALE
+  WRAP
+  UNWRAP
+}
+
+enum OfferType {
+  BID
+  ASK
+}
+
+type Punk @entity {
+  id: ID!
+  transferedTo: Account
+  assignedTo: Account
+  purchasedBy: Account
+  metadata: MetaData
+  contract: Contract
+  tokenId: BigInt!
+  owner: Account!
+  wrapped: Boolean!
+  currentAsk: Ask
+  currentBid: Bid
+  currentAskCreated: AskCreated
+  currentBidCreated: BidCreated
+  numberOfTransfers: BigInt!
+  numberOfSales: BigInt!
+  currentAskRemoved: AskRemoved
+  currentBidRemoved: BidRemoved
+  totalAmountSpentOnPunk: BigInt!
+  averageSalePrice: BigInt!
+  assigns: [Assign!] @derivedFrom(field: "nft")
+  sales: [Sale!] @derivedFrom(field: "nft")
+  createdAsks: [AskCreated!] @derivedFrom(field: "nft")
+  createdBids: [BidCreated!] @derivedFrom(field: "nft")
+  removedBids: [BidRemoved!] @derivedFrom(field: "nft")
+  removedAsks: [AskRemoved!] @derivedFrom(field: "nft")
+  transfers: [Transfer!] @derivedFrom(field: "nft")
+}
+
+type Account @entity {
+  id: ID!
+  punksOwned: [Punk!] @derivedFrom(field: "owner")
+  bought: [Sale!]! @derivedFrom(field: "to")
+  nftsOwned: [Punk!]! @derivedFrom(field: "owner")
+  assigned: [Assign!]! @derivedFrom(field: "to")
+  sent: [Transfer!]! @derivedFrom(field: "from")
+  received: [Transfer!]! @derivedFrom(field: "to")
+  bids: [Bid!]! @derivedFrom(field: "from")
+  asks: [Ask!]! @derivedFrom(field: "from")
+  numberOfPunksOwned: BigInt!
+  numberOfPunksAssigned: BigInt!
+  numberOfTransfers: BigInt!
+  numberOfSales: BigInt!
+  numberOfPurchases: BigInt!
+  totalSpent: BigInt!
+  totalEarned: BigInt!
+  averageAmountSpent: BigInt!
+  accountUrl: String!
+}
+
+type MetaData @entity {
+  id: ID!
+  tokenId: BigInt!
+  tokenURI: String!
+  image: String
+  svg: String
+  contractURI: String!
+  punk: Punk!
+  traits: [TraitMetaData!]! @derivedFrom(field: "metadata")
+}
+
+type Trait @entity {
+  id: ID!
+  type: TraitType!
+  numberOfNfts: BigInt!
+  metaDatas: [TraitMetaData!]! @derivedFrom(field: "trait")
+}
+
+type TraitMetaData @entity {
+  id: ID! # This is required, even if useless
+  trait: Trait!
+  metadata: MetaData!
+}
+
+type Ask @entity {
+  id: ID!
+  from: Account!
+  open: Boolean!
+  amount: BigInt!
+  nft: Punk
+  created: AskCreated
+  removed: AskRemoved
+  offerType: OfferType!
+}
+
+type Bid @entity {
+  id: ID!
+  from: Account!
+  open: Boolean!
+  amount: BigInt!
+  nft: Punk
+  created: BidCreated
+  removed: BidRemoved
+  offerType: OfferType!
+}
+
+type Contract @entity {
+  id: ID!
+  symbol: String
+  name: String
+  totalSupply: BigInt!
+  totalSales: BigInt!
+  totalAmountTraded: BigInt!
+  imageHash: String
+}
+
+type Assign @entity {
+  id: ID!
+  contract: Contract
+  nft: Punk
+  to: Account
+  amount: BigInt
+  from: Account
+  type: EventType!
+  logNumber: BigInt
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type Sale @entity {
+  id: ID!
+  to: Account
+  amount: BigInt
+  from: Account
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type AskCreated @entity {
+  id: ID!
+  from: Account
+  to: Account
+  ask: Ask
+  amount: BigInt
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type BidCreated @entity {
+  id: ID!
+  from: Account
+  to: Account
+  bid: Bid
+  amount: BigInt
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type BidRemoved @entity {
+  id: ID!
+  from: Account
+  to: Account
+  amount: BigInt
+  bid: Bid
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type AskRemoved @entity {
+  id: ID!
+  from: Account
+  to: Account
+  amount: BigInt
+  ask: Ask
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type Transfer @entity {
+  id: ID!
+  from: Account
+  to: Account
+  amount: BigInt
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type Wrap @entity {
+  id: ID!
+  from: Account
+  to: Account
+  amount: BigInt
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type Unwrap @entity {
+  id: ID!
+  from: Account
+  to: Account
+  amount: BigInt
+  contract: Contract
+  nft: Punk
+  logNumber: BigInt
+  type: EventType!
+  blockNumber: BigInt
+  blockHash: Bytes
+  txHash: Bytes
+  timestamp: BigInt
+}
+
+type CToken
+  @entity { #TransferEvents
+  "TxHash + logNumber" #This ID/Entity is used for referencing events in the same transaction
+  id: ID!
+
+  "Sender"
+  from: Account!
+
+  "Recepient"
+  to: Account!
+
+  "New owner of Punk"
+  owner: String!
+
+  "Amount of cToken transferred"
+  amount: BigInt
+
+  punkId: String
+
+  "Field for storing referenceIDs of other events in the same transaction"
+  referenceId: String!
+
+  "Transaction details"
+  blockNumber: BigInt!
+  blockHash: Bytes!
+  txHash: Bytes!
+  timestamp: BigInt!
+}
+
+type UserProxy @entity {
+  "Contract Address of UserProxy"
+  id: ID!
+
+  "Account that owns the Proxy"
+  user: Account!
+
+  "Transaction details"
+  blockNumber: BigInt!
+  blockHash: Bytes!
+  txHash: Bytes!
+  timestamp: BigInt!
+}
+
+type EpnsNotificationCounter @entity {
+  id: ID!
+  totalCount: BigInt!
+}
+
+type EpnsPushNotification @entity {
+  id: ID!
+  notificationNumber: BigInt!
+  recipient: String!
+  notification: String!
+}
