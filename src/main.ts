@@ -323,12 +323,12 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   await ctx.store.upsert([...assignEvents.values()]);
   await ctx.store.upsert([...sales.values()]);
 
-  // await ctx.store.upsert([...userProxies.values()]);
-  // await ctx.store.upsert([...punkTransfers.values()]);
-  // await ctx.store.upsert([...contracts.values()]);
-  // await ctx.store.upsert([...cTokens.values()]);
-  // await ctx.store.upsert([...wraps.values()]);
-  // await ctx.store.upsert([...unWraps.values()]);
-  // await ctx.store.upsert([...epnsPushNotifications.values()]);
-  // await ctx.store.upsert([...epnsNotificationCounters.values()]);
+  await ctx.store.upsert([...userProxies.values()]);
+  await ctx.store.upsert([...punkTransfers.values()]);
+  await ctx.store.upsert([...contracts.values()]);
+  await ctx.store.upsert([...cTokens.values()]);
+  await ctx.store.upsert([...wraps.values()]);
+  await ctx.store.upsert([...unWraps.values()]);
+  await ctx.store.upsert([...epnsPushNotifications.values()]);
+  await ctx.store.upsert([...epnsNotificationCounters.values()]);
 });
