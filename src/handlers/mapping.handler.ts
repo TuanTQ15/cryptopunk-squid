@@ -70,54 +70,6 @@ import {
 import { getOrCreateTransfer } from "../helpers/transfer.helper";
 import { createUnwrap, createWrap } from "../helpers/wrapAndUnwrap.helper";
 
-// import { handleBidNotification } from '../src/helpers/bidHelpers'
-// import { handleAskNotification } from './helpers/askHelpers'
-
-// import {
-// 	getOrCreateAccount,
-// 	updateAccountHoldings,
-// } from '../src/helpers/accountHelper'
-
-// import { getOrCreateTransfer } from './helpers/transferHelper'
-// import { getOrCreateAssign } from './helpers/assignHelper'
-// import {
-// 	getOwnerFromCToken,
-// 	getOrCreateCToken,
-// 	convertPriceToBigDecimal,
-// } from './utils'
-
-// import {
-// 	updatePunkOwner,
-// 	updatePunkSaleAggregates,
-// } from '../src/helpers/punkHelper'
-
-// import {
-// 	getOrCreateCryptoPunkContract,
-// 	getOrCreateWrappedPunkContract,
-// 	updateContractAggregates,
-// } from '../src/helpers/contractHelper'
-
-// import { createWrap, createUnwrap } from '../src/helpers/wrapAndUnwrap'
-// import { getOrCreateSale, handleSaleNotification } from './helpers/saleHelper'
-
-// import {
-// 	closeOldAsk,
-// 	createAskCreated,
-// 	createAskRemoved,
-// 	getOrCreateAsk,
-// } from './helpers/askHelpers'
-
-// import {
-// 	getOrCreateBid,
-// 	createBidCreated,
-// 	createBidRemoved,
-// 	closeOldBid,
-// } from '../src/helpers/bidHelpers'
-
-// import { updateSale } from './helpers/saleHelper'
-// import { updateAccountAggregates } from './helpers/accountHelper'
-// import { createPunk } from './helpers/punkHelper'
-
 export async function handleAssign(
   data: MappingInterface.IAssign
 ): Promise<void> {
@@ -236,7 +188,6 @@ export async function handlePunkTransfer(
     header,
     address,
   } = data;
-  console.debug("handlePunkTransfer from: {} to: {}", [from, to]);
 
   const sender = from;
   const receiver = to;
@@ -246,14 +197,11 @@ export async function handlePunkTransfer(
   const toProxy = userProxies.get(receiver)!;
 
   if (toProxy) {
-    console.debug("PunkTransfer to proxy detected toProxy: {} ", [toProxy.id]);
     return;
   } else if (
     receiver != WRAPPED_PUNK_ADDRESS &&
     sender != WRAPPED_PUNK_ADDRESS
   ) {
-    console.debug("Regular punk transfer check: {} ", [tokenId]);
-
     const toAccount = getOrCreateAccount(to);
     const fromAccount = getOrCreateAccount(from);
     const punk = punks.get(tokenId)!;
@@ -300,8 +248,6 @@ export async function handlePunkTransfer(
     sender == fromProxy.id &&
     receiver == WRAPPED_PUNK_ADDRESS
   ) {
-    console.info("Wrap detected of punk: {} ", [tokenId]);
-
     const punk = punks.get(tokenId)!;
     punk.wrapped = true;
 
@@ -309,7 +255,6 @@ export async function handlePunkTransfer(
     punks.set(punk.id, punk);
   } else if (sender == WRAPPED_PUNK_ADDRESS) {
     //Burn/Unwrap
-    console.debug("Unwrapped detected. From: {}, punk: {}", [sender, tokenId]);
 
     const punk = punks.get(tokenId)!;
     punk.wrapped = false;

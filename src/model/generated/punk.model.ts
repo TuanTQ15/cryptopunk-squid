@@ -5,6 +5,8 @@ import {
   ManyToOne as ManyToOne_,
   Index as Index_,
   OneToMany as OneToMany_,
+  OneToOne,
+  JoinColumn,
 } from "typeorm";
 import * as marshal from "./marshal";
 import { Account } from "./account.model";
@@ -41,8 +43,7 @@ export class Punk {
   @ManyToOne_(() => Account, { nullable: true })
   purchasedBy!: Account | undefined | null;
 
-  @Index_()
-  @ManyToOne_(() => MetaData, { nullable: true })
+  @OneToOne(() => MetaData, (metadata) => metadata.punk)
   metadata!: MetaData | undefined | null;
 
   @Index_()
@@ -62,20 +63,16 @@ export class Punk {
   @Column_("bool", { nullable: false })
   wrapped!: boolean;
 
-  @Index_()
-  @ManyToOne_(() => Ask, { nullable: true })
+  @OneToOne(() => Ask, (currentAsk) => currentAsk.nft)
   currentAsk!: Ask | undefined | null;
 
-  @Index_()
-  @ManyToOne_(() => Bid, { nullable: true })
+  @OneToOne(() => Bid, (currentBid) => currentBid.nft)
   currentBid!: Bid | undefined | null;
 
-  @Index_()
-  @ManyToOne_(() => AskCreated, { nullable: true })
+  @OneToOne(() => AskCreated, (currentAskCreated) => currentAskCreated.nft)
   currentAskCreated!: AskCreated | undefined | null;
 
-  @Index_()
-  @ManyToOne_(() => BidCreated, { nullable: true })
+  @OneToOne(() => BidCreated, (currentBidCreated) => currentBidCreated.nft)
   currentBidCreated!: BidCreated | undefined | null;
 
   @Column_("numeric", {
@@ -90,12 +87,13 @@ export class Punk {
   })
   numberOfSales!: bigint;
 
-  @Index_()
-  @ManyToOne_(() => AskRemoved, { nullable: true })
+  @OneToOne(() => AskRemoved, (currentAskRemoved) => currentAskRemoved.nft)
   currentAskRemoved!: AskRemoved | undefined | null;
 
-  @Index_()
-  @ManyToOne_(() => BidRemoved, { nullable: true })
+  @OneToOne(() => BidRemoved, (currentBidRemoved) => currentBidRemoved.nft)
+  @JoinColumn({
+    name: "id",
+  })
   currentBidRemoved!: BidRemoved | undefined | null;
 
   @Column_("numeric", {

@@ -298,11 +298,37 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   for (let c of ctx.blocks) {
     for (let log of c.logs) {
       // decode and normalize the tx data
-
-      await handleWrappedPunk(log, c.header, ctx);
-      await handleCryptoPunk(log, c.header, ctx);
-      await handleMarketplace(log, c.header, ctx);
-      await BlockHandler.handleBlock(c.header, ctx);
+      try {
+        await handleCryptoPunk(log, c.header, ctx);
+        await handleWrappedPunk(log, c.header, ctx);
+        await handleMarketplace(log, c.header, ctx);
+        await BlockHandler.handleBlock(c.header, ctx);
+      } catch (e: any) {
+        console.log(e.message);
+        return;
+      }
     }
   }
+
+  await ctx.store.upsert([...accounts.values()]);
+  await ctx.store.upsert([...punks.values()]);
+  await ctx.store.save([...punkBidEnteredEvents.values()]);
+  await ctx.store.upsert([...metaDatas.values()]);
+  await ctx.store.upsert([...bidCreatedEvents.values()]);
+  await ctx.store.upsert([...bidRemovedEvents.values()]);
+  await ctx.store.upsert([...asks.values()]);
+  await ctx.store.upsert([...askRemovedEvents.values()]);
+  await ctx.store.upsert([...askCreatedEvents.values()]);
+  await ctx.store.upsert([...traits.values()]);
+  await ctx.store.upsert([...assignEvents.values()]);
+  await ctx.store.upsert([...sales.values()]);
+
+  // await ctx.store.upsert([...userProxies.values()]);
+  // await ctx.store.upsert([...punkTransfers.values()]);
+  // await ctx.store.upsert([...contracts.values()]);
+  // await ctx.store.upsert([...cTokens.values()]);
+  // await ctx.store.upsert([...wraps.values()]);
+  // await ctx.store.upsert([...unWraps.values()]);
+  // await ctx.store.upsert([...epnsPushNotifications.values()]);
+  // await ctx.store.upsert([...epnsNotificationCounters.values()]);
 });
