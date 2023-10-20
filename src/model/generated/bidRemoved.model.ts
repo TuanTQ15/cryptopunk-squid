@@ -49,6 +49,9 @@ export class BidRemoved {
   contract!: Contract | undefined | null;
 
   @OneToOne(() => Punk, (bid) => bid.currentBidRemoved, { nullable: true })
+  @JoinColumn({
+    name: "id",
+  })
   nft!: Punk | undefined | null;
 
   @Column_("numeric", {

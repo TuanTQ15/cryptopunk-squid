@@ -338,7 +338,6 @@ export function handlePunkBidEntered(
   const bid = getOrCreateBid(data, account);
   const bidCreated = createBidCreated(data, punk, account, contract);
   bid.amount = value;
-  bid.nft = punk;
   bid.created = bidCreated;
 
   punk.currentBid = bid;
@@ -380,7 +379,6 @@ export function handlePunkBidWithdrawn(
   const account = getOrCreateAccount(fromAddress);
   const bidRemoved = createBidRemoved(data, punk, account, contract);
   bidRemoved.amount = value;
-  bidRemoved.nft = punk;
 
   const oldBid = punk.currentBid;
   if (oldBid) {
